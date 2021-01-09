@@ -188,7 +188,7 @@ tensorboard, you can install it with `conda install tensorboard` or
 tensorboard --logdir [ldif_root]/trained_models/sif-transcoder-[experiment_name]/log
 ```
 
-assuming that `--model_root` was set to the default `ldif_root]/trained_models/`
+assuming that `--model_root` was set to the default `ldif_root/trained_models/`
 
 Warning: Training an LDIF from scratch takes a long time. SIF also takes a while, though
 not nearly as long. The expected performance with a V100 and a batch size of 24 is

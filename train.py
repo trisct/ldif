@@ -207,9 +207,18 @@ def main(argv):
   checkpoint_dir = f'{experiment_dir}/1-hparams/train/'
 
   if FLAGS.reserve_memory_for_inference_kernel and sys.platform != "darwin":
+    print('[HERE: In train] --reserve_memory_for_inference_kernel specified.')
+    
     current_free = gpu_util.get_free_gpu_memory(0)
     allowable = current_free - (1024 + 512)  # ~1GB
+    allowable = min(allowable, 1000)
     allowable_fraction = allowable / current_free
+
+    
+    print('[HERE: In train] GPU memory usage planning:')
+    print('[HERE: In train] | allowable is limited to = 5000')
+    print('[HERE: In train] | current_free = %d, allowable = %d' % (current_free, allowable))
+    
     if allowable_fraction <= 0.0:
       raise ValueError(f"Can't leave 1GB over for the inference kernel, because"
                        f" there is only {allowable} total free GPU memory.")

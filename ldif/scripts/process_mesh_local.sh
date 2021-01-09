@@ -23,6 +23,11 @@ dodeca_path=${ldif_root}/data/dodeca_cameras.cam
 conf_path=${ldif_root}/data/base_conf.conf
 gaps=${ldif_root}/gaps/bin/x86_64/
 
+echo $gaps
+echo $mesh
+echo $dodeca_path
+echo $depth_dir
+
 # On macos osmesa is not used, on linux it is:
 if [[ $(uname -s) == Darwin* ]]
 then
@@ -30,6 +35,8 @@ then
 else
   mesa="-mesa"
 fi
+
+echo $mesa
 
 mkdir -p $outdir || true
 
