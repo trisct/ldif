@@ -262,6 +262,8 @@ def main(argv):
     for i in range(initial_index, FLAGS.train_step_count):
       log.verbose(f'Starting step {i}...')
       is_summary_step = i % FLAGS.summary_step_interval == 0
+      
+      # running the session to get the results
       if is_summary_step:
         _, summaries, loss = session.run(
             [model_config.train_op, summary_op, model_config.loss])
