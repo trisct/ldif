@@ -301,6 +301,8 @@ def main(argv):
       #print(f'[HERE: In train] Starting step {i}...')
       #print('[HERE: In train] Starting training, within loop, after verbose...')
       is_summary_step = i % FLAGS.summary_step_interval == 0
+      
+      # running the session to get the results
       if is_summary_step:
         #print('[HERE: In train] This is a summary step. Computing summaries and loss...')
         _, summaries, loss = session.run(
