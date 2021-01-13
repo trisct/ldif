@@ -497,6 +497,15 @@ class StructuredImplicit(object):
     """Parse a network activation into a structured implicit function."""
     ensure_net_if_needed(model_config, net)
     constant, center, radius, iparam = _unflatten(model_config, activation)
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.from_activation] ****** data types of geometric parameters.')
+    print('| constant type:', type(constant)) # Tensor
+    print('| constant shape:', constant.shape)
+    print('| center type:', type(center)) # Tensor
+    print('| center shape:', center.shape)
+    print('| radius type:', type(radius)) # Tensor
+    print('| radius shape:', radius.shape)
+    print('| iparam type:', type(iparam)) # None
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.from_activation] ****** data types of geometric parameters done.')
 
     if model_config.hparams.cp == 'a':
       constant = -tf.abs(constant)
@@ -506,6 +515,8 @@ class StructuredImplicit(object):
     max_blob_radius = 0.15
     radius_var *= max_blob_radius
     radius_var = radius_var * radius_var
+
+
     if model_config.hparams.r == 'cov':
       # radius_rot = sigma(radius[..., 3:], 50.0)
       max_euler_angle = np.pi / 4.0
@@ -886,7 +897,7 @@ class StructuredImplicit(object):
 
       implicit_values = self.implicit_values(local_samples)
 
-    if self._model_config.hparams.ipe == 't':
+    if self._model_config.hparams.ipe == 't': # default training setting ipe=='t'
       multiplier = 1.0 if self._model_config.hparams.ipc == 't' else 0.0
       residuals = 1 + multiplier * implicit_values
       # Each element is c * w * (1 + OccNet(x')):

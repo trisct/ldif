@@ -251,6 +251,7 @@ def sample_loss(model_config, gt_sdf, structured_implicit, global_samples, name,
   gt_class = sdf_util.apply_class_transfer(
       gt_sdf, model_config, soft_transfer=False, offset=0.0)
 
+  print('[HERE: ldif.training.loss.sample_loss] structured_implicit type:', type(structured_implicit)) # StructuredImplicit
   if model_config.hparams.lrf == 'l':
     global_decisions, local_outputs = structured_implicit.class_at_samples(
         global_samples)
@@ -259,7 +260,7 @@ def sample_loss(model_config, gt_sdf, structured_implicit, global_samples, name,
     gt_class = tf.tile(
         tf.expand_dims(gt_class, axis=1), [1, model_config.hparams.sc, 1, 1])
     weights = tf.stop_gradient(local_weights)
-  elif model_config.hparams.lrf == 'g':
+  elif model_config.hparams.lrf == 'g': # default setting for training
     global_decisions, local_outputs = structured_implicit.class_at_samples(
         global_samples)
     predicted_class = global_decisions
@@ -276,6 +277,7 @@ def sample_loss(model_config, gt_sdf, structured_implicit, global_samples, name,
     predicted_class = structured_implicit.implicit_values(local_samples)
     gt_class = local_gt
     weights = 1.0
+
   if apply_ucf:
     is_outside = gt_class > 0.5
     is_outside_frac = tf.reduce_mean(tf.cast(is_outside, dtype=tf.float32))
@@ -284,6 +286,7 @@ def sample_loss(model_config, gt_sdf, structured_implicit, global_samples, name,
           '%s-%s-outside-frac' % (model_config.inputs['split'], name),
           is_outside_frac)
     weights *= tf.where_v2(is_outside, 1.0, model_config.hparams.ucf)
+
   loss = weighted_l2_loss(gt_class, predicted_class, weights)
   return tf.reduce_mean(loss)
 
@@ -350,6 +353,12 @@ def compute_loss(model_config, training_example, structured_implicit):
   """Computes the overall loss based on the model configuration."""
   # The keys are kept so short because they are used to autogenerate a
   # tensorboard entry.
+
+  print('[HERE: In ldif.training.loss.compute_loss] training_example is:', type(training_example))
+  print('[HERE: In ldif.training.loss.compute_loss] training_example =', training_example)
+  print('[HERE: In ldif.training.loss.compute_loss] structured_implicit is:', type(structured_implicit))
+  print('[HERE: In ldif.training.loss.compute_loss] structured_implicit =', structured_implicit)
+
   loss_fun_dict = {
       'u': uniform_sample_loss,
       'ns': near_surface_sample_loss,
@@ -369,7 +378,10 @@ def compute_loss(model_config, training_example, structured_implicit):
   losses = []
   for key, loss_fun in loss_fun_dict.items():
     if key in model_config.hparams.loss:
+      # why on earth is `key` useful here???
+      # oh, the difference is in `loss_fun`
       loss = loss_fun(model_config, training_example, structured_implicit)
+      print('[HERE: In ldif.training.loss.compute_loss] loss returned by loss_fun is:', type(loss))
       losses.append(loss)
   # There must be at least one loss:
   assert losses

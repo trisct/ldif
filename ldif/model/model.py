@@ -298,8 +298,11 @@ class StructuredImplicitModel(object):
           if self._model_config.hparams.elr != 1.0:
             explicit_parameters = lr_mult(self._model_config.hparams.elr)(
                 explicit_parameters)
+
+      # get SIF
       sif = structured_implicit_function.StructuredImplicit.from_activation(
           self._model_config, explicit_parameters, self)
+      print('[HERE: In ldif.model.model.StructuredImplicitModel] sif type:', type(sif))
       # Now we can compute world2local
       world2local = sif.world2local
 

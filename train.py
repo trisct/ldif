@@ -47,7 +47,7 @@ from ldif.util.file_util import log
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer('batch_size', 8, 'The batch size to use when training.')
+flags.DEFINE_integer('batch_size', 1, 'The batch size to use when training.')
 
 flags.DEFINE_integer(
     'summary_step_interval', 10,
@@ -190,9 +190,27 @@ def main(argv):
 
   # Sets up the hyperparameters and tf.Dataset
   model_config = build_model_config(dataset)
+  #print('[HERE: In train] ******* Printing model_config, right after building model config')
+  #print(type(model_config))
+  #print(dir(model_config))
+  #print('[HERE: In train] ******* Printing model_config done, right after building model config')
+
 
   # Generates the graph for a single train step, including summaries
+
+  # shared_launcher.sif_transcoder sets more configs of model_config
   shared_launcher.sif_transcoder(model_config)
+  print('[HERE: In train] ******* Printing model_config, right after running shared_launcher')
+  print(type(model_config))
+  print(dir(model_config))
+
+  print('Type of model_config.train_op:', type(model_config.train_op))
+  print('Type of model_config.loss:', type(model_config.loss))
+  print('Losses used:', model_config.hparams.loss)
+  print('Hparams:', model_config.hparams)
+  # train_op is a tensor!
+  print('[HERE: In train] ******* Printing model_config done, right after running shared_launcher')
+
   summary_op = tf.summary.merge_all()
   global_step_op = tf.compat.v1.train.get_global_step()
 
@@ -209,9 +227,9 @@ def main(argv):
   if FLAGS.reserve_memory_for_inference_kernel and sys.platform != "darwin":
     print('[HERE: In train] --reserve_memory_for_inference_kernel specified.')
     
-    current_free = gpu_util.get_free_gpu_memory(2)
+    current_free = gpu_util.get_free_gpu_memory(0)
     allowable = current_free - (1024 + 512)  # ~1GB
-    #allowable = min(allowable, 1000)
+    #allowable = min(allowable, 5000)
     allowable_fraction = allowable / current_free
 
     
@@ -230,9 +248,19 @@ def main(argv):
       per_process_gpu_memory_fraction=allowable_fraction)
 
   with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as session:
+    #print('[HERE: In train] ******* Printing model_config, right after session creation')
+    #print(type(model_config))
+    #print(dir(model_config))
+    #print('[HERE: In train] ******* Printing model_config done, right after session creation')
+
     writer = tf.summary.FileWriter(f'{experiment_dir}/log', session.graph)
     log.info('Initializing variables...')
     session.run([init_op])
+
+    #print('[HERE: In train] ******* Printing model_config, right after session init')
+    #print(type(model_config))
+    #print(dir(model_config))
+    #print('[HERE: In train] ******* Printing model_config done, right after session init')
 
     if FLAGS.visualize:
       visualize_data(session, model_config.inputs['dataset'])
@@ -257,28 +285,49 @@ def main(argv):
       log.info(f'The global step is {initial_index}')
       initial_index = int(initial_index)
       log.info(f'Parsed to {initial_index}')
+    
+    print('[HERE: In train] Starting training...')
     start_time = time.time()
     log_every = 10
+    
+    print('[HERE: In train] ******* Printing model_config, right before training loop starts')
+    print(type(model_config))
+    print(dir(model_config))
+    print('[HERE: In train] ******* Printing model_config done, right before training loop starts')
+
     for i in range(initial_index, FLAGS.train_step_count):
+      #print('[HERE: In train] Starting training, within loop, before log verbose...')
       log.verbose(f'Starting step {i}...')
+      #print(f'[HERE: In train] Starting step {i}...')
+      #print('[HERE: In train] Starting training, within loop, after verbose...')
       is_summary_step = i % FLAGS.summary_step_interval == 0
       if is_summary_step:
+        #print('[HERE: In train] This is a summary step. Computing summaries and loss...')
         _, summaries, loss = session.run(
             [model_config.train_op, summary_op, model_config.loss])
         writer.add_summary(summaries, i)
+        #print('[HERE: In train] This is a summary step. Done writing summaries and loss...')
       else:
+        #print('[HERE: In train] This is not a summary step. Computing loss...')
         _, loss = session.run([model_config.train_op, model_config.loss])
+        #print('[HERE: In train] This is not a summary step. Done computing loss...')
       if not (i % log_every):
+        #print('[HERE: In train] This is a log step. Logging...')
         end_time = time.time()
         steps_per_second = float(log_every) / (end_time - start_time)
         start_time = end_time
         log.info(f'Step: {i}\tLoss: {loss}\tSteps/second: {steps_per_second}')
+        #print('[HERE: In train] This is a log step. Logging done...')
 
       is_checkpoint_step = i % FLAGS.checkpoint_interval == 0
       if is_checkpoint_step or i == FLAGS.train_step_count - 1:
+        #print('[HERE: In train] This is a saving checkpoint step. Saving model...')
         ckpt_path = os.path.join(checkpoint_dir, 'model.ckpt')
         log.info(f'Writing checkpoint to {ckpt_path}...')
         saver.save(session, ckpt_path, global_step=i)
+        #print('[HERE: In train] This is a saving checkpoint step. Done saving model...')
+      
+      #print('[HERE: In train] This step done. Starting a new step...')
     log.info('Done training!')
 
 
