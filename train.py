@@ -47,7 +47,7 @@ from ldif.util.file_util import log
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_integer('batch_size', 1, 'The batch size to use when training.')
+flags.DEFINE_integer('batch_size', 8, 'The batch size to use when training.')
 
 flags.DEFINE_integer(
     'summary_step_interval', 10,
@@ -209,14 +209,14 @@ def main(argv):
   if FLAGS.reserve_memory_for_inference_kernel and sys.platform != "darwin":
     print('[HERE: In train] --reserve_memory_for_inference_kernel specified.')
     
-    current_free = gpu_util.get_free_gpu_memory(0)
+    current_free = gpu_util.get_free_gpu_memory(2)
     allowable = current_free - (1024 + 512)  # ~1GB
-    allowable = min(allowable, 1000)
+    #allowable = min(allowable, 1000)
     allowable_fraction = allowable / current_free
 
     
     print('[HERE: In train] GPU memory usage planning:')
-    print('[HERE: In train] | allowable is limited to = 5000')
+    #print('[HERE: In train] | allowable is limited to = 5000')
     print('[HERE: In train] | current_free = %d, allowable = %d' % (current_free, allowable))
     
     if allowable_fraction <= 0.0:
