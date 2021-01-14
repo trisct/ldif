@@ -119,19 +119,30 @@ def sample_cov_bf(center, radius, samples):
   """
   with tf.name_scope('sample_cov_bf'):
     # Compute the samples' offset from center, then extract the coordinates.
-    diff = samples - tf.expand_dims(center, axis=-2)
+    diff = samples - tf.expand_dims(center, axis=-2) # difference to centers of sample points
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] diff shape =', diff.shape)
     x, y, z = tf.unstack(diff, axis=-1)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] x shape =', x.shape)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] y shape =', y.shape)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] z shape =', z.shape)
+    
     # Decode 6D radius vectors into inverse covariance matrices, then extract
     # unique elements.
     inv_cov = decode_covariance_roll_pitch_yaw(radius, invert=True)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] inv_cov shape, before reshaping =', inv_cov.shape)
+
     shape = tf.concat([tf.shape(inv_cov)[:-2], [1, 9]], axis=0)
     inv_cov = tf.reshape(inv_cov, shape)
-    c00, c01, c02, _, c11, c12, _, _, c22 = tf.unstack(inv_cov, axis=-1)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] inv_cov shape, after reshaping =', inv_cov.shape)
+
+    c00, c01, c02, _, c11, c12, _, _, c22 = tf.unstack(inv_cov, axis=-1) # symmetric matrices, actually a Gram matrix
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] cxx shape =', c00.shape, c01.shape, c02.shape, c11.shape, c12.shape, c22.shape)
     # Compute function value.
     dist = (
         x * (c00 * x + c01 * y + c02 * z) + y * (c01 * x + c11 * y + c12 * z) +
-        z * (c02 * x + c12 * y + c22 * z))
-    dist = tf.exp(-0.5 * dist)
+        z * (c02 * x + c12 * y + c22 * z)) # inner product with respect to the Gram matrix
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] dist shape =', dist.shape)
+    dist = tf.exp(-dist/2)
     return dist
 
 
@@ -266,6 +277,12 @@ def compute_shape_element_influences(quadrics, centers, radii, samples):
     tf_util.assert_shape(centers, [batch_size, quadric_count, 3], 'centers')
     tf_util.assert_shape(samples, [batch_size, quadric_count, sample_count, 3],
                          'samples')
+    
+    print('[HERE: In ldif.representation.quadrics.compute_shape_element_incluences] About to run rbf_sampler')
+    print('[HERE: In ldif.representation.quadrics.compute_shape_element_incluences] centers shape =', centers.shape)
+    print('[HERE: In ldif.representation.quadrics.compute_shape_element_incluences] radii shape =', radii.shape)
+    print('[HERE: In ldif.representation.quadrics.compute_shape_element_incluences] samples shape =', samples.shape)
+
     sampled_rbfs = rbf_sampler(centers, radii, samples)
     sampled_rbfs = tf.reshape(sampled_rbfs,
                               [batch_size, quadric_count, sample_count, 1])

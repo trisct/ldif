@@ -302,11 +302,13 @@ class StructuredImplicitModel(object):
       # get SIF
       sif = structured_implicit_function.StructuredImplicit.from_activation(
           self._model_config, explicit_parameters, self)
-      print('[HERE: In ldif.model.model.StructuredImplicitModel] sif type:', type(sif))
+      print('[HERE: In ldif.model.model.StructuredImplicitModel._global_local_forward] sif built:')
       # Now we can compute world2local
       world2local = sif.world2local
 
+      print('[HERE: In ldif.model.model.StructuredImplicitModel._global_local_forward] implicit_embedding_length =', implicit_embedding_length)
       if implicit_embedding_length > 0:
+        print('[HERE: In ldif.model.model.StructuredImplicitModel._global_local_forward] Using implicit embedding.')
         with tf.variable_scope(self._name + '/forward', reuse=reuse):
           with tf.variable_scope('implicit_embedding_net'):
             local_points, local_normals, _, _ = geom_util.local_views_of_shape(
@@ -335,13 +337,23 @@ class StructuredImplicitModel(object):
                 self._model_config.hparams.ips
             ])
         sif.set_iparams(iparams)
+        print('[HERE: In ldif.model.model.StructuredImplicitModel._global_local_forward] ****** sif iparams set. Printing geometric params')
+        print('| constant shape:', sif._constants.shape)
+        print('| center shape:', sif._centers.shape)
+        print('| radius shape:', sif._radii.shape)
+        print('[HERE: In ldif.model.model.StructuredImplicitModel._global_local_forward] ****** sif iparams set. Printing geometric params done')
         embedding = tf.concat([
             explicit_embedding,
             tf.reshape(iparams, [self._model_config.hparams.bs, -1])
         ],
                               axis=-1)
       else:
+        print('[HERE: In ldif.model.model.StructuredImplicitModel._global_local_forward] Using explicit embedding.')
         embedding = explicit_embedding
+      print('[HERE: In ldif.model.model.StructuredImplicitModel._global_local_forward] ****** embedding tensor set. Printing embedding information')
+      print('| embedding type:', type(embedding))
+      print('| embedding shape:', embedding.shape)
+      print('[HERE: In ldif.model.model.StructuredImplicitModel._global_local_forward] ****** embedding tensor set. Printing embedding information done')
       self._forward_call_count += 1
       return Prediction(self._model_config, observation, sif, embedding)
 

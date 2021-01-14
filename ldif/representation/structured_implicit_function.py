@@ -474,6 +474,12 @@ class StructuredImplicit(object):
       constants = tf.expand_dims(constants, axis=0)
       radii = tf.expand_dims(radii, axis=0)
       centers = tf.expand_dims(centers, axis=0)
+
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.__init__] ****** building a StructuredImplicit object.')
+    print('| constant shape:', constants.shape)
+    print('| center shape:', centers.shape)
+    print('| radius shape:', radii.shape)
+    
     self._constants = constants
     self._radii = radii
     self._centers = centers
@@ -484,6 +490,7 @@ class StructuredImplicit(object):
     self._quadrics = None
     self._net = net
     self._world2local = None
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.__init__] ****** building a StructuredImplicit object done.')
 
   @classmethod
   def from_packed_vector(cls, model_config, packed_vector, net):
@@ -497,15 +504,15 @@ class StructuredImplicit(object):
     """Parse a network activation into a structured implicit function."""
     ensure_net_if_needed(model_config, net)
     constant, center, radius, iparam = _unflatten(model_config, activation)
-    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.from_activation] ****** data types of geometric parameters.')
-    print('| constant type:', type(constant)) # Tensor
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.from_activation] ****** data shapes of geometric parameters.')
+    #print('| constant type:', type(constant)) # Tensor
     print('| constant shape:', constant.shape)
-    print('| center type:', type(center)) # Tensor
+    #print('| center type:', type(center)) # Tensor
     print('| center shape:', center.shape)
-    print('| radius type:', type(radius)) # Tensor
+    #print('| radius type:', type(radius)) # Tensor
     print('| radius shape:', radius.shape)
-    print('| iparam type:', type(iparam)) # None
-    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.from_activation] ****** data types of geometric parameters done.')
+    #print('| iparam type:', type(iparam)) # None
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.from_activation] ****** data shapes of geometric parameters done.')
 
     if model_config.hparams.cp == 'a':
       constant = -tf.abs(constant)
