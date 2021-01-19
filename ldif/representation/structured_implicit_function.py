@@ -855,7 +855,10 @@ class StructuredImplicit(object):
     #   batching_rank = 1
     #   batching_dims = [1]
     sample_count = samples.get_shape().as_list()[-2]
-
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.class_at_samples] samples shape, before generate_symgroups_samples =', samples.shape)
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.class_at_samples] self._constants shape, before _tile_for_symgroups =', self._constants.shape)
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.class_at_samples] self._centers shape, before _tile_for_symgroups =', self._centers.shape)
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.class_at_samples] self._radii shape, before _tile_for_symgroups =', self._radii.shape)
     effective_constants = _tile_for_symgroups(self._model_config,
                                               self._constants)
     effective_centers = _tile_for_symgroups(self._model_config, self._centers)
@@ -864,6 +867,13 @@ class StructuredImplicit(object):
     effective_samples = _generate_symgroup_samples(self._model_config, samples)
     # The samples have shape [batch_size, effective_elt_count, sample_count, 3]
     effective_element_count = get_effective_element_count(self._model_config)
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.class_at_samples] effective_samples shape, after generate_symgroups_samples =', effective_samples.shape)
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.class_at_samples] effective_constants shape, after _tile_for_symgroups =', effective_constants.shape)
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.class_at_samples] effective_centers shape, after _tile_for_symgroups =', effective_centers.shape)
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.class_at_samples] effective_radii shape, after _tile_for_symgroups =', effective_radii.shape)
+    print('[HERE: In ldif.representation.structured_implicit_function.StructuredImplicit.class_at_samples] effective_element_count, after _tile_for_symgroups =', effective_element_count)
+
+    
 
     per_element_constants, per_element_weights = (
         quadrics.compute_shape_element_influences(

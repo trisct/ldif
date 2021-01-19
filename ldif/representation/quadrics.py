@@ -117,6 +117,12 @@ def sample_cov_bf(center, radius, samples):
      Tensor with shape [..., N, 1]. The basis function strength at each sample
      location.
   """
+
+  print('[HERE: In ldif.representation.quadrics.sample_cov_bf] center shape =', center.shape)
+  print('[HERE: In ldif.representation.quadrics.sample_cov_bf] radius shape =', radius.shape)
+  print('[HERE: In ldif.representation.quadrics.sample_cov_bf] samples shape =', samples.shape)
+
+  
   with tf.name_scope('sample_cov_bf'):
     # Compute the samples' offset from center, then extract the coordinates.
     diff = samples - tf.expand_dims(center, axis=-2) # difference to centers of sample points
@@ -125,6 +131,15 @@ def sample_cov_bf(center, radius, samples):
     print('[HERE: In ldif.representation.quadrics.sample_cov_bf] x shape =', x.shape)
     print('[HERE: In ldif.representation.quadrics.sample_cov_bf] y shape =', y.shape)
     print('[HERE: In ldif.representation.quadrics.sample_cov_bf] z shape =', z.shape)
+
+    ring_replacement_start = 0
+    ring_replacement_end = 48
+    # acquring the middle part parameters for rings
+    x_ring = x[:, ring_replacement_start:ring_replacement_end]
+    y_ring = y[:, ring_replacement_start:ring_replacement_end]
+    z_ring = z[:, ring_replacement_start:ring_replacement_end]
+    radius_ring = radius[:, ring_replacement_start:ring_replacement_end, ...]
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] radius_ring shape =', radius_ring.shape)
     
     # Decode 6D radius vectors into inverse covariance matrices, then extract
     # unique elements.
@@ -138,13 +153,52 @@ def sample_cov_bf(center, radius, samples):
     c00, c01, c02, _, c11, c12, _, _, c22 = tf.unstack(inv_cov, axis=-1) # symmetric matrices, actually a Gram matrix
     print('[HERE: In ldif.representation.quadrics.sample_cov_bf] cxx shape =', c00.shape, c01.shape, c02.shape, c11.shape, c12.shape, c22.shape)
     # Compute function value.
-    dist = (
+    dist_gauss_elems = (
         x * (c00 * x + c01 * y + c02 * z) + y * (c01 * x + c11 * y + c12 * z) +
         z * (c02 * x + c12 * y + c22 * z)) # inner product with respect to the Gram matrix
-    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] dist shape =', dist.shape)
-    dist = tf.exp(-dist/2)
-    return dist
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] dist_gauss_elems shape =', dist_gauss_elems.shape)
+    dist_gauss_elems = tf.exp(- dist_gauss_elems / 2)
 
+    # Now starts our ring elements
+    d_ring = 1.0 / (radius_ring[..., 1:3] + DIV_EPSILON) if True else radius_ring[..., 1:3] # just to follow the one in decode_covariance_roll_pitch_yaw
+    rot_ring = camera_util.roll_pitch_yaw_to_rotation_matrices(radius_ring[..., 3:6])
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] d_ring shape =', d_ring.shape)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] rot_ring shape, before reshaping =', rot_ring.shape)
+    rot_ring = tf.transpose(rot_ring, perm=[0,1,3,2])
+    rot_ring_shape = tf.concat([tf.shape(rot_ring)[:-2], [1, 9]], axis=0)
+    rot_ring = tf.reshape(rot_ring, rot_ring_shape)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] rot_ring shape, after reshaping =', rot_ring.shape)
+    r00, r01, r02, r10, r11, r12, r20, r21, r22 = tf.unstack(rot_ring, axis=-1)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] rxx shape =', r00.shape)
+
+    x_ring_rot = r00 * x_ring + r01 * y_ring + r02 * z_ring
+    y_ring_rot = r10 * x_ring + r11 * y_ring + r12 * z_ring
+    z_ring_rot = r20 * x_ring + r21 * y_ring + r22 * z_ring
+    R_ring = radius_ring[..., 0:1]
+    r_ring = R_ring - tf.sqrt(x_ring_rot ** 2 + y_ring_rot ** 2)
+
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] x_ring_rot shape =', x_ring_rot.shape)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] R_ring shape =', R_ring.shape)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] r_ring shape =', r_ring.shape)
+    
+    dist_ring_elems = r_ring * d_ring[:, :, 0:1] * r_ring + z_ring_rot * d_ring[:, :, 1:2] * z_ring_rot
+    dist_ring_elems = tf.exp(- dist_ring_elems / 2)
+    
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] dist_gauss_elems shape =', dist_gauss_elems.shape)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] dist_ring_elems shape =', dist_ring_elems.shape)
+
+    dist_ring_final = tf.concat([dist_gauss_elems[:, :ring_replacement_start], dist_ring_elems, dist_gauss_elems[:, ring_replacement_end:]], axis=1)
+
+    use_rings = True
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] use_rings =', use_rings)
+
+    dist = dist_ring_final if use_rings else dist_gauss_elems
+    #  d = 1.0 / (radius[..., 0:3] + DIV_EPSILON) if invert else radius[..., 0:3]
+    #  diag = tf.matrix_diag(d)
+      
+    #  return tf.matmul(tf.matmul(rotation, diag), rotation, transpose_b=True)
+    print('[HERE: In ldif.representation.quadrics.sample_cov_bf] dist shape =', dist.shape)
+    return dist
 
 def sample_axis_aligned_bf(center, radius, samples):
   """Samples gaussian radial basis functions at specified coordinates.
@@ -219,7 +273,14 @@ def compute_shape_element_influences(quadrics, centers, radii, samples):
     Two tensors (the quadric values and the RBF values, respectively), each
     with shape [batch_size, quadric_count, sample_count, 1]
   """
-  with tf.name_scope('comptue_shape_element_influences'):
+
+  print('[HERE: In ldif.representation.quadrics.compute_shape_element_influences] quadrics shape =', quadrics.shape)
+  print('[HERE: In ldif.representation.quadrics.compute_shape_element_influences] centers shape =', centers.shape)
+  print('[HERE: In ldif.representation.quadrics.compute_shape_element_influences] radii shape =', radii.shape)
+  print('[HERE: In ldif.representation.quadrics.compute_shape_element_influences] samples shape =', samples.shape)
+
+
+  with tf.name_scope('compute_shape_element_influences'):
     # Select the number of samples along the ray. The larger this is, the
     # more memory that will be consumed and the slower the algorithm. But it
     # reduces warping artifacts and the likelihood of missing a thin surface.
