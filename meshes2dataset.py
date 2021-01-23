@@ -84,24 +84,38 @@ flags.DEFINE_boolean(
 
 def process_one(f, mesh_directory, dataset_directory, skip_existing, log_level):
   """Processes a single mesh, adding it to the dataset."""
+  
+  print('[HERE: In meshes2dataset.process_one] Entering a process_one...')
+  
   relpath = f.replace(mesh_directory, '')
   assert relpath[0] == '/'
   relpath = relpath[1:]
   split, synset = relpath.split('/')[:2]
+  
   log.verbose(f'The split is {split} and the synset is {synset}')
+  
   name = os.path.basename(f)
   name, extension = os.path.splitext(name)
   valid_extensions = ['.ply']
+  
   if extension not in valid_extensions:
     raise ValueError(f'File with unsupported extension {extension} found: {f}.'
                      f' Only {valid_extensions} are supported.')
+  
   output_dir = f'{dataset_directory}/{split}/{synset}/{name}/'
   # This is the last file the processing writes, if it already exists the
   # example has already been processed.
   final_file_written = f'{output_dir}/depth_and_normals.npz'
+  
+  print('[HERE: In meshes2dataset.process_one] f = %s\n' % f
+       +'[HERE: In meshes2dataset.process_one] | relpath = %s, split = %s, synset = %s\n' % (relpath, split, synset)
+       +'[HERE: In meshes2dataset.process_one] | mesh_to_example arg[0] = %s\n' % os.path.join(path_util.get_path_to_ldif_parent(), 'ldif')
+       +'[HERE: In meshes2dataset.process_one] | output_dir = %s' % output_dir)
+
   make_example.mesh_to_example(
       os.path.join(path_util.get_path_to_ldif_parent(), 'ldif'), f,
       f'{dataset_directory}/{split}/{synset}/{name}/', skip_existing, log_level)
+  
   return output_dir
 
 def serialize(example_dir, log_level):
@@ -124,6 +138,7 @@ def main(argv):
   if mesh_directory[-1] == '/':
     mesh_directory = mesh_directory[:-1]
 
+  print('[HERE: In meshes2dataset] mesh_directory: %s' % mesh_directory)
   files = glob.glob(f'{mesh_directory}/*/*/*.ply')
 
   if not files and not FLAGS.optimize_only:
@@ -133,30 +148,40 @@ def main(argv):
 
   # Make the directories first because it's not threadsafe and also might fail.
   if files and not FLAGS.optimize_only:
+    print('[HERE: In meshes2dataset] Have not specified optimize_only...')
     log.info('Creating directories...')
     for i, f in tqdm.tqdm(enumerate(files)):
+      print('[HERE: In meshes2dataset] f is %s' % f)
       relpath = f.replace(mesh_directory, '')
+      print('[HERE: In meshes2dataset] relpath is %s' % relpath)
       # log.info(f'Relpath: {relpath}')
       assert relpath[0] == '/'
       relpath = relpath[1:]
       split, synset = relpath.split('/')[:2]
+      print('[HERE: In meshes2dataset] split is %s, synset is %s' % (split, synset))
+
       if not os.path.isdir(f'{FLAGS.dataset_directory}/{split}'):
         os.makedirs(f'{FLAGS.dataset_directory}/{split}')
       if not os.path.isdir(f'{FLAGS.dataset_directory}/{split}/{synset}'):
         os.mkdir(f'{FLAGS.dataset_directory}/{split}/{synset}')
+    
     log.info('Making dataset...')
     # Flags can't be pickled:
+    
     output_dirs = Parallel(n_jobs=n_jobs)(
         delayed(process_one)(f, mesh_directory, FLAGS.dataset_directory,
-                             FLAGS.skip_existing, FLAGS.log_level) for f in tqdm.tqdm(files))
+                             FLAGS.skip_existing, FLAGS.log_level) for f in tqdm.tqdm(files)) # a generator here!
     log.info('Making dataset registry...')
   else:
     output_dirs = glob.glob(f'{FLAGS.dataset_directory}/*/*/*/surface_samples_from_dodeca.pts')
     output_dirs = [os.path.dirname(f) + '/' for f in output_dirs]
+  
   output_dirs.sort()  # So randomize with a fixed seed always results in the same order
   splits = {x.split('/')[-4] for x in output_dirs}
+  
   if 'optimized' in splits:
     raise ValueError(f'The keyword "optimized" cannot be used for a split name, it is reserved.')
+  
   for split in splits:
     elements_of_split = [x for x in output_dirs if x.split('/')[-4] == split]
     with open(f'{FLAGS.dataset_directory}/{split}.txt', 'wt') as f:
@@ -164,6 +189,7 @@ def main(argv):
   log.info('Done!')
 
   if FLAGS.optimize:
+    print('[HERE: In meshes2dataset] Have specified optimize...')
     log.info('Precomputing optimized tfrecord files...')
     opt_dir = f'{FLAGS.dataset_directory}/optimized'
     if FLAGS.trample_optimized and os.path.isdir(opt_dir):

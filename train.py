@@ -229,7 +229,7 @@ def main(argv):
     
     current_free = gpu_util.get_free_gpu_memory(0)
     allowable = current_free - (1024 + 512)  # ~1GB
-    #allowable = min(allowable, 5000)
+    allowable = min(allowable, 10000)
     allowable_fraction = allowable / current_free
 
     
