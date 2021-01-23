@@ -41,7 +41,7 @@ echo $mesa
 mkdir -p $outdir || true
 
 mesh_orig=${outdir}/mesh_orig.${mesh_in##*.}
-ln -s $mesh_in $mesh_orig
+ln -s /mnt/exthome/3dlab/ldif/$mesh_in $mesh_orig
 
 mesh=${outdir}/model_normalized.obj
 # Step 0) Normalize the mesh before applying all other operations.
