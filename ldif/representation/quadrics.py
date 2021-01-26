@@ -189,7 +189,7 @@ def sample_cov_bf(center, radius, samples):
 
     dist_ring_final = tf.concat([dist_gauss_elems[:, :ring_replacement_start], dist_ring_elems, dist_gauss_elems[:, ring_replacement_end:]], axis=1)
 
-    use_rings = True
+    use_rings = False
     print('[HERE: In ldif.representation.quadrics.sample_cov_bf] use_rings =', use_rings)
 
     dist = dist_ring_final if use_rings else dist_gauss_elems

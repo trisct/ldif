@@ -229,7 +229,7 @@ def main(argv):
     
     current_free = gpu_util.get_free_gpu_memory(2)
     allowable = current_free - (1024 + 512)  # ~1GB
-    #allowable = min(allowable, 5000)
+    allowable = min(allowable, 10000)
     allowable_fraction = allowable / current_free
 
     
@@ -294,12 +294,13 @@ def main(argv):
     print(type(model_config))
     print(dir(model_config))
     print('[HERE: In train] ******* Printing model_config done, right before training loop starts')
+    
 
     for i in range(initial_index, FLAGS.train_step_count):
-      #print('[HERE: In train] Starting training, within loop, before log verbose...')
+      print('[HERE: In train] Starting training, within loop, before log verbose...')
       log.verbose(f'Starting step {i}...')
-      #print(f'[HERE: In train] Starting step {i}...')
-      #print('[HERE: In train] Starting training, within loop, after verbose...')
+      print(f'[HERE: In train] Starting step {i}...')
+      print('[HERE: In train] Starting training, within loop, after verbose...')
       is_summary_step = i % FLAGS.summary_step_interval == 0
       
       # running the session to get the results
@@ -308,28 +309,28 @@ def main(argv):
         _, summaries, loss = session.run(
             [model_config.train_op, summary_op, model_config.loss])
         writer.add_summary(summaries, i)
-        #print('[HERE: In train] This is a summary step. Done writing summaries and loss...')
+        print('[HERE: In train] This is a summary step. Done writing summaries and loss...')
       else:
-        #print('[HERE: In train] This is not a summary step. Computing loss...')
+        print('[HERE: In train] This is not a summary step. Computing loss...')
         _, loss = session.run([model_config.train_op, model_config.loss])
-        #print('[HERE: In train] This is not a summary step. Done computing loss...')
+        print('[HERE: In train] This is not a summary step. Done computing loss...')
       if not (i % log_every):
-        #print('[HERE: In train] This is a log step. Logging...')
+        print('[HERE: In train] This is a log step. Logging...')
         end_time = time.time()
         steps_per_second = float(log_every) / (end_time - start_time)
         start_time = end_time
         log.info(f'Step: {i}\tLoss: {loss}\tSteps/second: {steps_per_second}')
-        #print('[HERE: In train] This is a log step. Logging done...')
+        print('[HERE: In train] This is a log step. Logging done...')
 
       is_checkpoint_step = i % FLAGS.checkpoint_interval == 0
       if is_checkpoint_step or i == FLAGS.train_step_count - 1:
-        #print('[HERE: In train] This is a saving checkpoint step. Saving model...')
+        print('[HERE: In train] This is a saving checkpoint step. Saving model...')
         ckpt_path = os.path.join(checkpoint_dir, 'model.ckpt')
         log.info(f'Writing checkpoint to {ckpt_path}...')
         saver.save(session, ckpt_path, global_step=i)
-        #print('[HERE: In train] This is a saving checkpoint step. Done saving model...')
+        print('[HERE: In train] This is a saving checkpoint step. Done saving model...')
       
-      #print('[HERE: In train] This step done. Starting a new step...')
+      print('[HERE: In train] This step done. Starting a new step...')
     log.info('Done training!')
 
 
