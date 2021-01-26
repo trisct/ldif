@@ -227,7 +227,7 @@ def main(argv):
   if FLAGS.reserve_memory_for_inference_kernel and sys.platform != "darwin":
     print('[HERE: In train] --reserve_memory_for_inference_kernel specified.')
     
-    current_free = gpu_util.get_free_gpu_memory(0)
+    current_free = gpu_util.get_free_gpu_memory(2)
     allowable = current_free - (1024 + 512)  # ~1GB
     #allowable = min(allowable, 5000)
     allowable_fraction = allowable / current_free
