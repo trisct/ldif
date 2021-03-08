@@ -41,7 +41,7 @@ echo $mesa
 mkdir -p $outdir || true
 
 mesh_orig=${outdir}/mesh_orig.${mesh_in##*.}
-ln -s /mnt/exthome/3dlab/ldif/$mesh_in $mesh_orig
+ln -s /home/trisst/3dlab/ldif/$mesh_in $mesh_orig
 
 mesh=${outdir}/model_normalized.obj
 # Step 0) Normalize the mesh before applying all other operations.
@@ -68,7 +68,7 @@ ${gaps}/scn2img $mesh $dodeca_path $depth_dir -capture_depth_images \
 # The normalized mesh is no longer needed on disk; we have the transformation,
 # so if we need it we can load the original symlinked mesh and transform it
 # to the normalized frame.
-rm $mesh
+#rm $mesh
 
 local_conf=${outdir}/custom_conf.conf
 echo "dataset_processed" > $local_conf
@@ -77,4 +77,4 @@ cat $conf_path >> $local_conf
 # TODO(kgenova) We have to write out normals as well?
 ${gaps}/conf2img $local_conf ${outdir}/normals \
   -create_normal_images -width 224 -height 224 $mesa
-rm $local_conf
+#rm $local_conf
